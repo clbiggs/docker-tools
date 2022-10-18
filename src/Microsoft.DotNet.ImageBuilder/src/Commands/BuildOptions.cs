@@ -22,6 +22,7 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
         public string? ImageInfoSourcePath { get; set; }
         public string? SourceRepoUrl { get; set; }
         public bool NoCache { get; set; }
+        public bool NoLayerCache { get; set; }
         public string? SourceRepoPrefix { get; set; }
         public IDictionary<string, string> BuildArgs { get; set; } = new Dictionary<string, string>();
         public bool SkipPlatformCheck { get; set; }
@@ -54,6 +55,8 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
                             "Repo URL of the Dockerfile sources"),
                         CreateOption<bool>("no-cache", nameof(BuildOptions.NoCache),
                             "Disables build cache feature"),
+                        CreateOption<bool>("no-layer-cache", nameof(BuildOptions.NoLayerCache),
+                            "Disables layer caching during build"),
                         CreateOption<string?>("source-repo-prefix", nameof(BuildOptions.SourceRepoPrefix),
                             "Prefix to add to the external base image names when pulling them"),
                         CreateDictionaryOption("build-arg", nameof(BuildOptions.BuildArgs),

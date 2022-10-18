@@ -42,12 +42,12 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
             string runtimeDepsDigest = $"{runtimeDepsRepo}@sha256:c74364a9f125ca612f9a67e4a0551937b7a37c82fabb46172c4867b73edd638c";
             string runtimeDigest = $"{runtimeRepo}@sha256:adc914a9f125ca612f9a67e4a0551937b7a37c82fabb46172c4867b73ed99227";
             string aspnetDigest = $"{aspnetRepo}@sha256:781914a9f125ca612f9a67e4a0551937b7a37c82fabb46172c4867b73ed0045a";
-            IEnumerable<string> runtimeDepsLayers = new [] { 
+            IEnumerable<string> runtimeDepsLayers = new [] {
                 "sha256:777b2c648970480f50f5b4d0af8f9a8ea798eea43dbcf40ce4a8c7118736bdcf",
                 "sha256:b9dfc8eed8d66f1eae8ffe46be9a26fe047a7f6554e9dbc2df9da211e59b4786" };
-            IEnumerable<string> runtimeLayers = 
+            IEnumerable<string> runtimeLayers =
                 runtimeDepsLayers.Concat(new [] { "sha256:466982335a8bacfe63b8f75a2e8c6484dfa7f7e92197550643b3c1457fa445b4" });
-            IEnumerable<string> aspnetLayers = 
+            IEnumerable<string> aspnetLayers =
                 runtimeLayers.Concat(new [] { "sha256:d305fbfc4bd0d9f38662e979dced9831e3b5e4d85442397a8ec0a0e7bcf5458b"});
             const string tag = "tag";
             const string localTag = "localtag";
@@ -517,6 +517,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     },
                     It.IsAny<IDictionary<string, string>>(),
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>()));
 
             dockerServiceMock.Verify(
@@ -619,6 +620,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     It.Is<Dictionary<string, string>>(
                         args => args.Count == 3 && args["arg1"] == "val1" && args["arg2"] == "val2b" && args["arg3"] == "val3"),
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>()));
         }
 
@@ -679,6 +681,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                         TagInfo.GetFullyQualifiedName(repoName, sharedTag)
                     },
                     It.IsAny<IDictionary<string, string>>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>(),
                     It.IsAny<bool>()));
 
@@ -869,7 +872,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                 o.BuildImage(
                     PathHelper.NormalizePath(Path.Combine(tempFolderContext.Path, runtimeDepsLinuxDockerfileRelativePath)),
                     It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IDictionary<string, string>>(),
-                    It.IsAny<bool>(), It.IsAny<bool>()),
+                    It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()),
                 Times.Never);
 
             dockerServiceMock.VerifyNoOtherCalls();
@@ -935,7 +938,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
             Mock<IDockerService> dockerServiceMock = CreateDockerServiceMock("Pulling from");
 
             using TempFolderContext tempFolderContext = TestHelper.UseTempFolder();
-            
+
             const string runtimeRelativeDir = "1.0/runtime/os";
             Directory.CreateDirectory(Path.Combine(tempFolderContext.Path, runtimeRelativeDir));
             string dockerfileRelativePath = PathHelper.NormalizePath(Path.Combine(runtimeRelativeDir, "Dockerfile"));
@@ -1462,7 +1465,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     }
                 }
             };
-          
+
             ImageArtifactDetails sourceImageArtifactDetails = new ImageArtifactDetails
             {
                 Repos = sourceRepos.ToList()
@@ -1618,7 +1621,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
             dockerServiceMock.Verify(o =>
                 o.BuildImage(
                     It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
-                    It.IsAny<IDictionary<string, string>>(), It.IsAny<bool>(), It.IsAny<bool>()),
+                    It.IsAny<IDictionary<string, string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()),
                 Times.Never);
 
             dockerServiceMock.VerifyNoOtherCalls();
@@ -1905,6 +1908,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<IDictionary<string, string>>(),
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>()));
 
             dockerServiceMock.Verify(o => o.PullImage(baseImageTag, "linux/amd64", false));
@@ -2101,6 +2105,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                         It.IsAny<string>(),
                         new string[] { expectedTag },
                         It.IsAny<IDictionary<string, string>>(),
+                        It.IsAny<bool>(),
                         It.IsAny<bool>(),
                         It.IsAny<bool>()),
                     Times.Once);
@@ -2344,6 +2349,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                         new string[] { expectedTag },
                         It.IsAny<IDictionary<string, string>>(),
                         It.IsAny<bool>(),
+                        It.IsAny<bool>(),
                         It.IsAny<bool>()),
                     Times.Once);
             }
@@ -2552,7 +2558,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                 o.BuildImage(
                     PathHelper.NormalizePath(Path.Combine(tempFolderContext.Path, runtimeDepsLinuxDockerfileRelativePath)),
                     It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IDictionary<string, string>>(),
-                    It.IsAny<bool>(), It.IsAny<bool>()),
+                    It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()),
                 Times.Never);
 
             dockerServiceMock.VerifyNoOtherCalls();
@@ -2796,7 +2802,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
             dockerServiceMock.Verify(o =>
                 o.BuildImage(
                     It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
-                    It.IsAny<IDictionary<string, string>>(), It.IsAny<bool>(), It.IsAny<bool>()),
+                    It.IsAny<IDictionary<string, string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()),
                 Times.Never);
             dockerServiceMock.Verify(o => o.GetCreatedDate(It.IsAny<string>(), false));
 
@@ -2880,7 +2886,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     .Setup(o => o.GetImageDigestAsync($"{RegistryOverride}/{RepoPrefix}{AspnetRepo}:{Tag}", It.IsAny<IRegistryCredentialsHost>(), false))
                     .ReturnsAsync(callCount => callCount > 0 ? $"{RegistryOverride}/{RepoPrefix}{AspnetRepo}@{AspnetDigest}" : null);
             }
-            
+
             dockerServiceMock
                 .Setup(o => o.GetImageDigestAsync(mirrorBaseTag, It.IsAny<IRegistryCredentialsHost>(), false))
                 .ReturnsAsync(mirrorBaseImageDigest);
@@ -3139,6 +3145,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<IDictionary<string, string>>(),
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>()));
 
             if (hasCachedImage)
@@ -3156,7 +3163,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
             }
 
             dockerServiceMock.Verify(o => o.GetImageDigestAsync(mirrorBaseTag, It.IsAny<IRegistryCredentialsHost>(), false));
-            
+
             dockerServiceMock.Verify(o => o.GetImageDigestAsync($"{RegistryOverride}/{RepoPrefix}{AspnetRepo}:{Tag}", It.IsAny<IRegistryCredentialsHost>(), false));
 
             dockerServiceMock.Verify(o => o.PushImage($"{RegistryOverride}/{RepoPrefix}{RuntimeDepsRepo}:{Tag}", false));
@@ -3176,7 +3183,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                 dockerServiceMock.Verify(o => o.GetImageArch(mirrorBaseTag, false));
                 dockerServiceMock.Verify(o => o.GetImageArch($"{RegistryOverride}/{RepoPrefix}{RuntimeDepsRepo}:{Tag}", false));
             }
-            
+
             dockerServiceMock.Verify(o => o.GetImageArch($"{RegistryOverride}/{RepoPrefix}{RuntimeRepo}:{Tag}", false));
 
             dockerServiceMock.VerifyNoOtherCalls();
@@ -3265,6 +3272,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     It.IsAny<string>(),
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<IDictionary<string, string>>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>(),
                     It.IsAny<bool>()));
 
@@ -3408,6 +3416,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<IDictionary<string, string>>(),
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>()));
 
             dockerServiceMock.Verify(o => o.PullImage($"{baseImageRepoPrefix}/{MirroredBaseTag}", "linux/amd64", false));
@@ -3439,6 +3448,7 @@ namespace Microsoft.DotNet.ImageBuilder.Tests
                         It.IsAny<string>(),
                         It.IsAny<IEnumerable<string>>(),
                         It.IsAny<IDictionary<string, string>>(),
+                        It.IsAny<bool>(),
                         It.IsAny<bool>(),
                         It.IsAny<bool>()))
                 .Returns(buildOutput ?? string.Empty);

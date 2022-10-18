@@ -68,7 +68,7 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
 
                 await PublishImageInfoAsync();
             });
-            
+
             WriteBuildSummary();
             WriteBuiltImagesToOutputVar();
         }
@@ -264,7 +264,7 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
                     {
                         // Tag the built images with the shared tags as well as the platform tags.
                         // Some tests and image FROM instructions depend on these tags.
-                        
+
                         IEnumerable<TagInfo> allTagInfos = platform.Tags
                             .Concat(image.SharedTags)
                             .ToList();
@@ -445,7 +445,8 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
                     allTags,
                     GetBuildArgs(platform),
                     Options.IsRetryEnabled,
-                    Options.IsDryRun);
+                    Options.IsDryRun,
+                    Options.NoLayerCache);
 
                 if (!Options.IsSkipPullingEnabled && !Options.IsDryRun && buildOutput?.Contains("Pulling from") == true)
                 {

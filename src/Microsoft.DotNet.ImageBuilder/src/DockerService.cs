@@ -71,15 +71,17 @@ namespace Microsoft.DotNet.ImageBuilder
             IEnumerable<string> tags,
             IDictionary<string, string?> buildArgs,
             bool isRetryEnabled,
-            bool isDryRun)
+            bool isDryRun,
+            bool noLayerCache)
         {
             string tagArgs = $"-t {string.Join(" -t ", tags)}";
+            string nocacheArg = noLayerCache ? " --no-cache" : "";
 
             IEnumerable<string> buildArgList = buildArgs
                 .Select(buildArg => $" --build-arg {buildArg.Key}={buildArg.Value}");
             string buildArgsString = string.Join(string.Empty, buildArgList);
 
-            string dockerArgs = $"build --platform {platform} {tagArgs} -f {dockerfilePath}{buildArgsString} {buildContextPath}";
+            string dockerArgs = $"build{nocacheArg} --platform {platform} {tagArgs} -f {dockerfilePath}{buildArgsString} {buildContextPath}";
 
             if (isRetryEnabled)
             {

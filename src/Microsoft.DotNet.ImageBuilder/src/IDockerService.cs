@@ -31,7 +31,8 @@ namespace Microsoft.DotNet.ImageBuilder
             IEnumerable<string> tags,
             IDictionary<string, string?> buildArgs,
             bool isRetryEnabled,
-            bool isDryRun);
+            bool isDryRun,
+            bool noLayerCache);
 
         (Architecture Arch, string? Variant) GetImageArch(string image, bool isDryRun);
 
