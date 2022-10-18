@@ -5,13 +5,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 using Microsoft.DotNet.ImageBuilder.Models.Image;
 using Microsoft.DotNet.ImageBuilder.ViewModel;
 using Newtonsoft.Json;
@@ -21,26 +17,26 @@ using Octokit;
 namespace Microsoft.DotNet.ImageBuilder.Commands
 {
     [Export(typeof(ICommand))]
-    public class GetStaleImagesCommand : Command<GetStaleImagesOptions, GetStaleImagesOptionsBuilder>, IDisposable
+    public class GetStaleImagesCommand : Command<GetStaleImagesOptions, GetStaleImagesOptionsBuilder>
     {
         private readonly Dictionary<string, string> _imageDigests = new();
         private readonly SemaphoreSlim _imageDigestsLock = new(1);
         private readonly IManifestService _manifestToolService;
         private readonly ILoggerService _loggerService;
         private readonly IOctokitClientFactory _octokitClientFactory;
-        private readonly HttpClient _httpClient;
+        private readonly IGitService _gitService;
 
         [ImportingConstructor]
         public GetStaleImagesCommand(
             IManifestService manifestToolService,
-            IHttpClientProvider httpClientProvider,
             ILoggerService loggerService,
-            IOctokitClientFactory octokitClientFactory)
+            IOctokitClientFactory octokitClientFactory,
+            IGitService gitService)
         {
             _manifestToolService = manifestToolService;
             _loggerService = loggerService;
             _octokitClientFactory = octokitClientFactory;
-            _httpClient = httpClientProvider.GetClient();
+            _gitService = gitService;
         }
 
         protected override string Description => "Gets paths to images whose base images are out-of-date";
@@ -53,8 +49,8 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
             }
 
             IEnumerable<Task<SubscriptionImagePaths>> getPathResults =
-                (await SubscriptionHelper.GetSubscriptionManifestsAsync(
-                    Options.SubscriptionOptions.SubscriptionsPath, Options.FilterOptions, _httpClient, _loggerService))
+                SubscriptionHelper.GetSubscriptionManifests(
+                    Options.SubscriptionOptions.SubscriptionsPath, Options.FilterOptions, _gitService)
                 .Select(async subscriptionManifest =>
                     new SubscriptionImagePaths
                     {
@@ -88,8 +84,6 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
 
             List<string> pathsToRebuild = new();
 
-            IEnumerable<PlatformInfo> allPlatforms = manifest.GetAllPlatforms().ToList();
-
             foreach (RepoInfo repo in manifest.FilteredRepos)
             {
                 IEnumerable<PlatformInfo> platforms = repo.FilteredImages
@@ -101,15 +95,19 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
 
                 foreach (PlatformInfo platform in platforms)
                 {
-                    pathsToRebuild.AddRange(await GetPathsToRebuildAsync(allPlatforms, platform, repoData));
+                    pathsToRebuild.AddRange(await GetPathsToRebuildAsync(manifest, platform, repoData));
                 }
             }
 
             return pathsToRebuild.Distinct().ToList();
         }
 
+        private static IEnumerable<PlatformInfo> GetDescendants(PlatformInfo platform, ManifestInfo manifest) =>
+            manifest.GetDescendants(platform, manifest.GetAllPlatforms().ToList(), includeAncestorsOfDescendants: true)
+                .Prepend(platform);
+
         private async Task<List<string>> GetPathsToRebuildAsync(
-            IEnumerable<PlatformInfo> allPlatforms, PlatformInfo platform, RepoData? repoData)
+            ManifestInfo manifest, PlatformInfo platform, RepoData? repoData)
         {
             bool foundImageInfo = false;
 
@@ -119,7 +117,7 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
             {
                 _loggerService.WriteMessage(
                     $"WARNING: Image info not found for '{platform.DockerfilePath}'. Adding path to build to be queued anyway.");
-                IEnumerable<PlatformInfo> dependentPlatforms = platform.GetDependencyGraph(allPlatforms);
+                IEnumerable<PlatformInfo> dependentPlatforms = GetDescendants(platform, manifest);
                 pathsToRebuild.AddRange(dependentPlatforms.Select(p => p.Model.Dockerfile));
             }
 
@@ -163,7 +161,7 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
 
                     if (rebuildImage)
                     {
-                        IEnumerable<PlatformInfo> dependentPlatforms = platform.GetDependencyGraph(allPlatforms);
+                        IEnumerable<PlatformInfo> dependentPlatforms = GetDescendants(platform, manifest);
                         pathsToRebuild.AddRange(dependentPlatforms.Select(p => p.Model.Dockerfile));
                     }
 
@@ -191,11 +189,6 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
             string imageDataJson = await blobsClient.GetFileContentAsync(subscription.ImageInfo.Owner, subscription.ImageInfo.Repo, fileSha);
 
             return ImageInfoHelper.LoadFromContent(imageDataJson, manifest, skipManifestValidation: true);
-        }
-
-        public void Dispose()
-        {
-            _httpClient.Dispose();
         }
     }
 }
