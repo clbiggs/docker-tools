@@ -149,14 +149,21 @@ namespace Microsoft.DotNet.ImageBuilder
 
         public static string GetDigestString(string repo, string sha) => $"{repo}@{sha}";
 
-        public static string GetImageName(string registry, string repo, string? tag = null, string? digest = null)
+        public static string GetImageName(string? registry, string repo, string? tag = null, string? digest = null)
         {
             if (tag != null && digest != null)
             {
                 throw new InvalidOperationException($"Invalid to provide both the {nameof(tag)} and {nameof(digest)} arguments.");
             }
 
-            string imageName = $"{registry}/{repo}";
+            string imageName = registry ?? string.Empty;
+            if (imageName.Length > 0)
+            {
+                imageName += $"/";
+            }
+
+            imageName += repo;
+
             if (tag != null)
             {
                 return $"{imageName}:{tag}";
@@ -168,6 +175,8 @@ namespace Microsoft.DotNet.ImageBuilder
 
             return imageName;
         }
+
+        public static string GetTagName(string imageName) => imageName[(GetTagOrDigestSeparatorIndex(imageName) + 1)..];
 
         public static string NormalizeRepo(string image)
         {

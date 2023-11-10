@@ -20,7 +20,7 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
         private const string StageIdMatchName = "stageId";
         private const string ScratchIdentifier = "scratch";
 
-        private static Regex FromRegex { get; } = new Regex($@"FROM\s+(?<{FromImageMatchName}>\S+)(\s+AS\s+(?<{StageIdMatchName}>\S+))?");
+        private static Regex FromRegex { get; } = new Regex($@"FROM\s+(--platform=.*?\s+)?(?<{FromImageMatchName}>\S+)(\s+AS\s+(?<{StageIdMatchName}>\S+))?");
 
         private static readonly string s_argPattern = $"\\$(?<{ArgGroupName}>[\\w\\d-_]+)";
 
@@ -206,6 +206,10 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
                 {
                     displayName = "Debian 11";
                 }
+                else if (os.Contains("bookworm"))
+                {
+                    displayName = "Debian 12";
+                }
                 else if (os.Contains("xenial"))
                 {
                     displayName = "Ubuntu 16.04";
@@ -245,6 +249,10 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
                 else if (os.Contains("leap"))
                 {
                     displayName = FormatVersionableOsName(os, name => "openSUSE Leap");
+                }
+                else if (os.Contains("ubuntu"))
+                {
+                    displayName = FormatVersionableOsName(os, name => "Ubuntu");
                 }
                 else
                 {
@@ -296,7 +304,7 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
 
             return (osVersion, string.Empty);
         }
-            
+
 
         private static bool IsStageReference(string fromImage, IList<Match> fromMatches)
         {

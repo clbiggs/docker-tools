@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
@@ -15,14 +16,14 @@ namespace Microsoft.DotNet.ImageBuilder
     [Export(typeof(IDockerService))]
     internal class DockerService : IDockerService
     {
-        private readonly IManifestService _manifestToolService;
+        private readonly IManifestService _manifestService;
 
         public Architecture Architecture => DockerHelper.Architecture;
 
         [ImportingConstructor]
         public DockerService(IManifestService manifestToolService)
         {
-            _manifestToolService = manifestToolService ?? throw new ArgumentNullException(nameof(manifestToolService));
+            _manifestService = manifestToolService ?? throw new ArgumentNullException(nameof(manifestToolService));
         }
 
         public async Task<string?> GetImageDigestAsync(string image, IRegistryCredentialsHost credsHost, bool isDryRun)
@@ -35,7 +36,7 @@ namespace Microsoft.DotNet.ImageBuilder
                 return null;
             }
 
-            string digestSha = await _manifestToolService.GetManifestDigestShaAsync(image, credsHost, isDryRun);
+            string digestSha = await _manifestService.GetManifestDigestShaAsync(image, credsHost, isDryRun);
 
             if (digestSha is null)
             {
@@ -56,13 +57,21 @@ namespace Microsoft.DotNet.ImageBuilder
         }
 
         public Task<IEnumerable<string>> GetImageManifestLayersAsync(string image, IRegistryCredentialsHost credsHost, bool isDryRun) =>
-            _manifestToolService.GetImageLayersAsync(image, credsHost, isDryRun);
+            _manifestService.GetImageLayersAsync(image, credsHost, isDryRun);
 
         public void PullImage(string image, string? platform, bool isDryRun) => DockerHelper.PullImage(image, platform, isDryRun);
 
         public void PushImage(string tag, bool isDryRun) => ExecuteHelper.ExecuteWithRetry("docker", $"push {tag}", isDryRun);
 
+        public void PushManifestList(string manifestListTag, bool isDryRun) =>
+            ExecuteHelper.ExecuteWithRetry("docker", $"manifest push {manifestListTag}", isDryRun);
+
         public void CreateTag(string image, string tag, bool isDryRun) => DockerHelper.CreateTag(image, tag, isDryRun);
+
+        public void CreateManifestList(string manifestListTag, IEnumerable<string> images, bool isDryRun) =>
+            // Use the --amend option to handle potential retries: https://github.com/dotnet/docker-tools/issues/1098
+            ExecuteHelper.ExecuteWithRetry(
+                "docker", $"manifest create --amend {manifestListTag} {string.Join(' ', images.ToArray())}", isDryRun);
 
         public string? BuildImage(
             string dockerfilePath,
@@ -82,6 +91,13 @@ namespace Microsoft.DotNet.ImageBuilder
             string buildArgsString = string.Join(string.Empty, buildArgList);
 
             string dockerArgs = $"build{nocacheArg} --platform {platform} {tagArgs} -f {dockerfilePath}{buildArgsString} {buildContextPath}";
+
+            // Workaround for https://github.com/moby/buildkit/issues/1368
+            // BuildKit caches Dockerfiles based on file size and timestamp.
+            // In case we need to build two Dockerfiles that are the same size,
+            // we need to set the timestamp manually so that we build the
+            // correct Dockerfile.
+            File.SetLastWriteTimeUtc(dockerfilePath, DateTime.UtcNow);
 
             if (isRetryEnabled)
             {
