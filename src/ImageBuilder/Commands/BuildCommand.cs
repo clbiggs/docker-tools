@@ -487,7 +487,7 @@ namespace Microsoft.DotNet.ImageBuilder.Commands
             {
                 string? buildOutput = _dockerService.BuildImage(
                     dockerfilePath,
-                    platform.BuildContextPath,
+                    platform.BuildBuildContextPath,
                     platform.PlatformLabel,
                     allTags,
                     GetBuildArgs(platform),

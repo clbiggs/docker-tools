@@ -30,6 +30,11 @@ namespace Microsoft.DotNet.ImageBuilder.Models.Manifest
         public IDictionary<string, string> BuildArgs { get; set; } = new Dictionary<string, string>();
 
         [Description(
+            "Build Context Path. If not set, directory fo dockerfile is used."
+        )]
+        public string ContextPath { get; set; } = string.Empty;
+
+        [Description(
             "Relative path to the associated Dockerfile. This can be a file or a " +
             "directory. If it is a directory, the file name defaults to Dockerfile."
             )]

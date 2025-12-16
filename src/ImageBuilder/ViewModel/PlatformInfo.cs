@@ -25,7 +25,7 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
 
         public string BaseOsVersion { get; private set; }
         public IDictionary<string, string?> BuildArgs { get; private set; } = ImmutableDictionary<string, string?>.Empty;
-        public string BuildContextPath { get; private set; }
+        public string BuildBuildContextPath { get; private set; }
         public string DockerfilePath { get; private set; }
         public string DockerfilePathRelativeToManifest { get; private set; }
         public string? DockerfileTemplate { get; private set; }
@@ -60,7 +60,13 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
 
             string dockerfileWithBaseDir = Path.Combine(baseDirectory, model.ResolveDockerfilePath(baseDirectory));
             DockerfilePath = PathHelper.NormalizePath(dockerfileWithBaseDir);
-            BuildContextPath = PathHelper.NormalizePath(Path.GetDirectoryName(dockerfileWithBaseDir));
+
+            BuildBuildContextPath = Model.ContextPath;
+            if (!string.IsNullOrEmpty(BuildBuildContextPath))
+            {
+                BuildBuildContextPath = PathHelper.NormalizePath(Path.GetDirectoryName(dockerfileWithBaseDir));
+            }
+
             DockerfilePathRelativeToManifest = PathHelper.TrimPath(baseDirectory, DockerfilePath);
 
             if (model.DockerfileTemplate != null)
@@ -69,7 +75,7 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
             }
 
             Tags = model.Tags
-                .Select(kvp => TagInfo.Create(kvp.Key, kvp.Value, repoName, variableHelper, BuildContextPath))
+                .Select(kvp => TagInfo.Create(kvp.Key, kvp.Value, repoName, variableHelper, BuildBuildContextPath))
                 .ToArray();
 
             string platformArchLabel = Model.Architecture.ToString();
